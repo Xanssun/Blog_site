@@ -67,10 +67,9 @@ def post_detail(request, post_id):
 def post_create(request):
     post = Post(author=request.user)
     form = PostForm(request.POST or None, instance=post)
-    if request.method == 'POST':
-        if form.is_valid():
-            form.save()
-            return redirect('posts:profile', request.user.username)
+    if form.is_valid():
+        form.save()
+        return redirect('posts:profile', request.user.username)
     return render(request, 'posts/create_post.html', {'form': form})
 
 

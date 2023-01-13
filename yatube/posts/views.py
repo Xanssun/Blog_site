@@ -1,10 +1,13 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .utils import paginate_page
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import cache_page
 
-from .forms import PostForm, CommentForm
-from .models import Post, Group, User, Follow
+from .forms import CommentForm, PostForm
+from .models import Follow, Group, Post, User
+from .utils import paginate_page
+
+User = get_user_model()
 
 
 @cache_page(20, key_prefix='index_page')
@@ -134,4 +137,3 @@ def profile_unfollow(request, username):
     if follow.exists():
         follow.delete()
     return redirect('posts:profile', username=username)
-    

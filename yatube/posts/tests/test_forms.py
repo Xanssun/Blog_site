@@ -60,7 +60,7 @@ class PostFormsTest(TestCase):
             'image': self.uploaded
         }
         self.authorized_client.post(
-            reverse("posts:create"), data=form_data)
+            reverse("posts:post_create"), data=form_data)
         self.assertEqual(
             Post.objects.latest('pub_date').text, form_data['text']
         )
@@ -70,7 +70,7 @@ class PostFormsTest(TestCase):
     def test_edit_form(self):
         """Проверка измения поста"""
         self.authorized_client.get(
-            reverse('posts:edit', kwargs={'post_id': self.post.id})
+            reverse('posts:post_edit', kwargs={'post_id': self.post.id})
         )
         post_new_data = {
             'text': 'Другой текст поста',
@@ -78,7 +78,7 @@ class PostFormsTest(TestCase):
         }
         self.authorized_client.post(
             reverse(
-                'posts:edit', kwargs={'post_id': self.post.id}
+                'posts:post_edit', kwargs={'post_id': self.post.id}
             ), data=post_new_data
         )
         self.assertTrue(Post.objects.filter(

@@ -57,7 +57,7 @@ class PostModelTest(TestCase):
         post = PostModelTest.post
         field_help_texts = {
             'text': 'Введите текст поста',
-            'group': 'Группа поста',
+            'group': 'Группа, к которой будет относиться пост',
             'image': 'Загрузите картинку',
         }
         for field, expected_value in field_help_texts.items():

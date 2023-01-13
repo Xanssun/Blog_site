@@ -1,63 +1,52 @@
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
+from .utils import paginate_page
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.cache import cache_page
 
-from .forms import CommentForm, PostForm
-from .models import Follow, Group, Post, User
-from .utils import paginate_page
-
-User = get_user_model()
+from .forms import PostForm, CommentForm
+from .models import Post, Group, User, Follow
 
 
-@cache_page(20)
+@cache_page(20, key_prefix='index_page')
 def index(request):
-    post_list = Post.objects.select_related('group', 'author').all()
-    context = {
-        'page_obj': paginate_page(request, post_list),
-    }
-    return render(request, 'posts/index.html', context)
+    """Главная страница"""
+    last_posts = Post.objects.select_related('group', 'author')
+    page_obj = paginate_page(request, last_posts)
+    return render(request, 'posts/index.html', {'page_obj': page_obj})
 
 
 def group_posts(request, slug):
+    """Страница постов выбранной группы"""
     group = get_object_or_404(Group, slug=slug)
-    post_list = group.posts.select_related('group', 'author').all()
-    title = f'Записи сообщества {group.title}'
-    description = group.description
-    context = {
-        'group': group,
-        'page_obj': paginate_page(request, post_list),
-        'title': title,
-        'description': description,
-    }
-    return render(request, 'posts/group_list.html', context)
+    posts = group.posts.select_related('group', 'author').all()
+    page_obj = paginate_page(request, posts)
+    return render(
+        request,
+        'posts/group_list.html',
+        {'group': group, 'page_obj': page_obj}
+    )
 
 
 def profile(request, username):
-    """ Здесь код запроса к модели и создание словаря контекста """
+    """Страница постов выбранного автора"""
     author = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=author)
-    author_posts = author.posts.all()
-    posts_count = author.posts.count()
+    posts = author.posts.select_related('group', 'author').all()
+    page_obj = paginate_page(request, posts)
+    following = request.user.is_authenticated and author.following.exists()
     context = {
-        'page_obj': paginate_page(request, post_list),
+        'page_obj': page_obj,
         'author': author,
-        'posts_count': posts_count,
-        'posts': author_posts,
-
+        'following': following
     }
     return render(request, 'posts/profile.html', context)
 
 
 def post_detail(request, post_id):
-    """Здесь код запроса к модели и создание словаря контекста"""
-    post = get_object_or_404(Post, id=post_id)
-    posts_count = Post.objects.filter(author=post.author).count()
+    """Страница выбранного поста"""
+    post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST)
     context = {
         'post': post,
-        'posts_count': posts_count,
-        'requser': request.user,
         'form': form,
     }
     return render(request, 'posts/post_detail.html', context)
@@ -65,38 +54,50 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
-    post = Post(author=request.user)
-    form = PostForm(request.POST or None, instance=post)
-    if form.is_valid():
-        form.save()
-        return redirect('posts:profile', request.user.username)
-    return render(request, 'posts/create_post.html', {'form': form})
+    """Создание нового поста, после успешного заполнения -
+    переход на страницу профиля"""
+    form = PostForm(request.POST or None)
+    if not request.method == 'POST':
+        return render(request, 'posts/create_post.html', {'form': form})
+    if not form.is_valid():
+        return render(request, 'posts/create_post.html', {'form': form})
+    post = form.save(commit=False)
+    post.author = request.user
+    post.save()
+    return redirect('posts:profile', request.user.username)
 
 
 @login_required
 def post_edit(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    """Редактирование поста - доступно только автору поста,
+    если пользователь - не автор - переход на страницу поста.
+    После успешного редактирования - переход на страницу поста"""
+    post = get_object_or_404(
+        Post, pk=post_id
+    )
     if request.user != post.author:
         return redirect('posts:post_detail', post_id)
     form = PostForm(
         request.POST or None,
         files=request.FILES or None,
-        instance=post)
+        instance=post
+    )
+    if request.method != 'POST':
+        context = {
+            'post': post,
+            'form': form,
+            'is_edit': True,
+        }
+        return render(request, 'posts/create_post.html', context)
     if form.is_valid():
         form.save()
-        return redirect('posts:post_detail', post_id)
-    template = 'posts/create_post.html'
-    context = {
-        'form': form,
-        'post': post,
-        'is_edit': True
-    }
-    return render(request, template, context)
+    return redirect('posts:post_detail', post_id)
 
 
 @login_required
 def add_comment(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    """Создание комментария к посту"""
+    post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
@@ -108,27 +109,29 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    """информация о текущем пользователе доступна в переменной request.user"""
-    post_list = Post.objects.filter(
-        author__following__user=request.user).select_related('group', 'author')
-    context = {
-        'page_obj': paginate_page(request, post_list),
-    }
-    return render(request, 'posts/follow.html', context)
+    """Страница постов авторов, на которых подписан текущий пользователь."""
+    user = get_object_or_404(User, username=request.user)
+    posts_list = Post.objects.filter(
+        author__following__user=user).select_related('group', 'author')
+    page_obj = paginate_page(request, posts_list)
+    return render(request, 'posts/follow.html', {'page_obj': page_obj})
 
 
 @login_required
 def profile_follow(request, username):
     """Подписаться на автора"""
     author = get_object_or_404(User, username=username)
-    if author != request.user:
-        Follow.objects.get_or_create(user=request.user, author=author)
-    return redirect('posts:profile', author)
+    if request.user != author and not author.following.exists():
+        Follow.objects.create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
 
 
 @login_required
 def profile_unfollow(request, username):
+    """Дизлайк, отписка"""
     author = get_object_or_404(User, username=username)
-    if author != request.user:
-        Follow.objects.filter(user=request.user, author=author).delete()
-    return redirect('posts:profile', username)
+    follow = Follow.objects.filter(user=request.user, author=author)
+    if follow.exists():
+        follow.delete()
+    return redirect('posts:profile', username=username)
+    

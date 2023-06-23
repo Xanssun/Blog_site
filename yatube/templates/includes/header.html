@@ -1,54 +1,35 @@
-{% load static %}
-<header>
-  <nav class="navbar navbar-light" style="background-color: lightskyblue">
-    <div class="container">
-      <a class="navbar-brand" href="{% url 'posts:index' %}">
-        <img src="{% static 'img/logo.png' %}" width="30" height="30" class="d-inline-block align-top" alt="">
-        <span style="color:red">Ya</span>tube
-      </a>
-      {% with request.resolver_match.view_name as view_name %}
-      <ul class="nav nav-pills">
-        <li class="nav-item">
-          <a class="nav-link {% if view_name  == 'about:author' %}active{% endif %}"
-             href="{% url 'about:author' %}"
-          >
-            Об авторе
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if view_name  == 'about:tech' %}active{% endif %}"
-             href="{% url 'about:tech' %}"
-          >Технологии
-          </a>
-        </li>
-        {% if request.user.is_authenticated %}
-        <li class="nav-item">
-          <a class="nav-link {% if view_name  == 'posts:post_create' %}active{% endif %}"
-             href="{% url 'posts:post_create' %}"
-          >Новая запись
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link link-light" href="{% url 'users:password_reset_form' %}">
-            Изменить пароль
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link link-light" href="{% url 'users:logout' %}">Выйти</a>
-        </li>
-        <li>
-          Пользователь: {{ user.username }}
-        </li>
-        {% else %}
-        <li class="nav-item">
-          <a class="nav-link link-light" href="{% url 'users:login' %}">Войти</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link link-light" href="{% url 'users:signup' %}">Регистрация</a>
-        </li>
-        {% endif %}
-      </ul>
-      {% endwith %}
-    </div>
+<header class="site-header">
+  <nav class="navbar navbar-expand-md navbar-dark bg-blue fixed-top">
+        <div class="container">
+          <a class="navbar-brand mr-4" href="{% url 'posts:index' %}">
+            <span class="fs-3 bi me-4">
+              <span style="color:red">Ya</span>tube
+            </span>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+          {% with request.resolver_match.view_name as view_name %}
+          <div class="collapse navbar-collapse" id="navbarToggle">
+            <div class="navbar-nav mr-auto">
+              <a class="nav-item nav-link " href="{% url 'about:author' %}">Главная</a>
+              <a class="nav-item nav-link " href="{% url 'about:tech' %}">О сайте</a>
+            </div>
+            <div class="navbar-nav">
+                {% if request.user.is_authenticated %}
+                  <a class="nav-item nav-link " href="{% url 'posts:post_create' %}">Новая запись</a>
+                  <a class="nav-item nav-link " href="{% url 'users:password_reset_form' %}">Изменить пароль</a>
+                  <a class="nav-item nav-link " href="{% url 'users:logout' %}">Выйти</a>
+                {% else %}
+                  <a class="nav-item nav-link " href="{% url 'users:signup' %}">Регистрация</a>
+                  <a class="nav-item nav-link " href="{% url 'users:login' %}">Войти</a>
+                  {% endif %}
+            </div>  
+            <form class="col-12 col-lg-auto mb-lg-0 me-lg-3">
+              <input class="form-control" type="text" placeholder="Поиск.." aria-label="Search">
+            </form>
+          </div>
+        </div>
+        {% endwith %}
+      </div>
   </nav>
 </header>

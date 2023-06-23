@@ -59,7 +59,7 @@ def post_detail(request, post_id):
 def post_create(request):
     """Создание нового поста, после успешного заполнения -
     переход на страницу профиля"""
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST, files=request.FILES or None)
     if not request.method == 'POST':
         return render(request, 'posts/create_post.html', {'form': form})
     if not form.is_valid():

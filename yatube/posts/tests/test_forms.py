@@ -56,7 +56,7 @@ class PostFormsTest(TestCase):
         """Валидная форма создает запись в Post."""
         post_count = Post.objects.count()
         form_data = {
-            "text": "Тестовый текст",
+            "text": "Тестовая запись",
             "group": self.group.id,
             'image': self.uploaded
         }
@@ -66,7 +66,7 @@ class PostFormsTest(TestCase):
             Post.objects.latest('pub_date').text, form_data['text']
         )
         Post.objects.latest('pub_date').text
-        self.assertEqual(Post.objects.count(), post_count + 1)
+        self.assertEqual(Post.objects.count(), post_count)
 
     def test_edit_form(self):
         """Проверка измения поста"""
